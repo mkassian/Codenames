@@ -33,6 +33,7 @@ button:focus-visible,input:focus-visible,li:focus-visible,.card:focus-visible{ou
 .tabs{display:flex;margin:20px 0 6px;border-bottom:2px solid #4A4038}
 .tabs button{flex:1;background:none;border:0;color:var(--muted);font:600 15px 'Rubik',sans-serif;padding:10px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
 .tabs button.active{color:#F5ECD6;border-bottom-color:#F5ECD6}
+.version{margin:28px 0 0;text-align:center;font-size:12px;color:var(--dim)}
 .hint{font-size:13px;color:var(--dim);margin:8px 0 10px}
 .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
 .card{aspect-ratio:1.45;border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;cursor:pointer;transition:opacity .2s,filter .2s;overflow:hidden}
@@ -101,10 +102,11 @@ a{color:#FFD66B}
     <div class="lists" id="lists"></div>
   </section>
 
+  <p class="version" id="version"></p>
 </div>
-
 <script>
 // Адрес вашего воркера Cloudflare (вставьте свой после создания воркера)
+const APP_VERSION = "Версия 5, 01.10.2026 11:48";
 const WORKER_URL = "https://codenames-ocr.vwm4hczm8w.workers.dev";
 
 const DEFAULT_WORDS = [
@@ -332,6 +334,7 @@ $("fileKey").onchange = async e => {
   }finally{ state.busy = ""; render(); }
 };
 
+$("version").textContent = APP_VERSION;
 render();
 </script>
 </body>
