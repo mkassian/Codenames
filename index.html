@@ -3,13 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Подсказка капитана — Кодовые имена</title>
+<title>Codenames капитан</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕵️</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#2A241F;--panel:#332C26;--panel2:#3A332C;--text:#EFE6D0;--muted:#B8AA92;--dim:#9C8F7A;--btn:#8C7A6B;
-  --R:#D23A2A;--B:#2C5DA8;--Y:#E4D6A2;--K:#141414}
+:root{--bg:#2A241F;--panel:#332C26;--panel2:#3A332C;--text:#EFE6D0;--muted:#B8AA92;--dim:#9C8F7A;--btn:#8C7A6B}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg)}
 body{color:var(--text);font-family:'Rubik',system-ui,-apple-system,'Segoe UI',sans-serif;
@@ -17,7 +16,7 @@ body{color:var(--text);font-family:'Rubik',system-ui,-apple-system,'Segoe UI',sa
 .app{max-width:760px;margin:0 auto}
 h1{font-size:28px;font-weight:800;margin:0;color:#F5ECD6}
 .sub{margin:6px 0 0;color:var(--muted);font-size:15px}
-.startPill{border:0;color:#fff;font:inherit;font-weight:700;padding:2px 10px;border-radius:999px;cursor:pointer}
+.pill{border:0;color:#fff;font:inherit;font-weight:700;padding:2px 10px;border-radius:999px;cursor:pointer}
 .scoreRow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:18px 0 14px}
 .score{border-radius:10px;padding:10px 8px;display:flex;align-items:baseline;gap:6px;justify-content:center}
 .scoreNum{font-size:26px;font-weight:800;line-height:1}
@@ -25,6 +24,7 @@ h1{font-size:28px;font-weight:800;margin:0;color:#F5ECD6}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px}
 button.tb{background:var(--btn);color:#FFF8EA;border:0;border-radius:8px;padding:9px 13px;font:500 14px 'Rubik',sans-serif;cursor:pointer}
 button.tb.on{background:var(--text);color:var(--bg)}
+button.tb.danger{background:#5A2620;color:#FFD9D2}
 button:disabled{opacity:.5;cursor:default}
 button:focus-visible,input:focus-visible,li:focus-visible,.card:focus-visible{outline:2px solid #FFD66B;outline-offset:2px}
 .note{margin-top:12px;padding:10px 12px;border-radius:8px;font-size:14px;line-height:1.4}
@@ -33,15 +33,33 @@ button:focus-visible,input:focus-visible,li:focus-visible,.card:focus-visible{ou
 .tabs{display:flex;margin:20px 0 6px;border-bottom:2px solid #4A4038}
 .tabs button{flex:1;background:none;border:0;color:var(--muted);font:600 15px 'Rubik',sans-serif;padding:10px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
 .tabs button.active{color:#F5ECD6;border-bottom-color:#F5ECD6}
-.version{margin:28px 0 0;text-align:center;font-size:12px;color:var(--dim)}
-.hint{font-size:13px;color:var(--dim);margin:8px 0 10px}
+.hint{font-size:13px;color:var(--dim);margin:8px 0 10px;line-height:1.4}
+.boardHead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:10px 0}
+.boardHead .hint{margin:0}
+.gridWrap{position:relative}
 .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-.card{aspect-ratio:1.45;border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;cursor:pointer;transition:opacity .2s,filter .2s;overflow:hidden}
+.card{aspect-ratio:1.45;border-radius:7px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;cursor:pointer;transition:opacity .2s,filter .2s;overflow:hidden;position:relative}
 .card.opened{opacity:.28;filter:saturate(.4)}
 .card.opened .word{text-decoration:line-through}
+.card.ghost{background:transparent;border:1px dashed #4A4038;cursor:default}
+.card.sel{outline:3px solid #FFFFFF;outline-offset:-3px}
+.card.empty .word{opacity:.5}
 .word{font-weight:700;font-size:clamp(9px,2.6vw,15px);text-align:center;word-break:break-word;line-height:1.1}
 .word.long{font-size:clamp(7px,1.9vw,12px)}
-a{color:#FFD66B}
+.dots{position:absolute;top:3px;right:3px;display:flex;gap:2px}
+.dot{width:8px;height:8px;border-radius:50%;border:1px solid rgba(0,0,0,.4)}
+svg.links{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.linkBar{margin-top:10px;background:var(--panel);border-radius:10px;padding:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.linkBar input{flex:1;min-width:140px;background:var(--bg);color:var(--text);border:1px solid #5A4F45;border-radius:8px;padding:9px 10px;font:500 15px 'Rubik',sans-serif;text-transform:uppercase}
+.linkBar input::placeholder{text-transform:none;color:var(--dim)}
+.linkBar .count{font-weight:700;font-size:15px;min-width:90px}
+.groups{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.group{display:flex;align-items:center;gap:10px;background:var(--panel);border-radius:10px;padding:10px 12px;border-left:6px solid;cursor:pointer}
+.group.dim{opacity:.45}
+.group .gText{flex:1;min-width:0}
+.group .gClue{font-weight:700;font-size:15px}
+.group .gWords{font-size:13px;color:var(--muted);margin-top:2px;word-break:break-word}
+.group .gDel{background:none;border:0;color:var(--muted);font-size:20px;cursor:pointer;padding:4px 8px}
 .editor{margin-top:16px;background:var(--panel);border-radius:10px;padding:14px}
 .editor p{margin:0 0 12px;font-size:14px;color:var(--muted);line-height:1.45}
 .editRow{margin-bottom:14px}
@@ -50,21 +68,25 @@ a{color:#FFD66B}
 .swatch{flex:none;width:40px;height:40px;border-radius:8px;border:2px solid rgba(255,255,255,.25);cursor:pointer}
 .wordEdit{flex:1;min-width:0;background:var(--bg);color:var(--text);border:1px solid #5A4F45;border-radius:8px;padding:10px;font:500 16px 'Rubik',sans-serif;text-transform:uppercase}
 .done{width:100%;margin-top:6px;background:var(--text);color:var(--bg);border:0;border-radius:8px;padding:12px;font:700 15px 'Rubik',sans-serif;cursor:pointer}
+.filters{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.filters button{border:2px solid transparent;border-radius:999px;padding:6px 12px;font:600 14px 'Rubik',sans-serif;cursor:pointer;background:var(--panel2);color:var(--text)}
+.filters button.active{border-color:#F5ECD6}
 .lists{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:14px}
 .list{border:2px solid;border-radius:10px;overflow:hidden;background:var(--panel)}
 .list h2{margin:0;font-size:15px;font-weight:700;padding:9px 12px;display:flex;justify-content:space-between}
 .list ul{list-style:none;margin:0;padding:6px 0}
-.list li{padding:7px 12px;font-weight:500;font-size:15px;cursor:pointer;letter-spacing:.02em}
+.list li{padding:7px 12px;font-weight:500;font-size:15px;cursor:pointer;letter-spacing:.02em;display:flex;align-items:center;gap:6px}
 .list li.opened{opacity:.35;text-decoration:line-through}
-a{color:#FFD66B}
+.list li.sel{background:rgba(255,255,255,.12)}
+.version{margin:28px 0 0;text-align:center;font-size:12px;color:var(--dim)}
 @media (prefers-reduced-motion:reduce){.card{transition:none}}
 </style>
 </head>
 <body>
 <div class="app">
   <header>
-    <h1>Подсказка капитана</h1>
-    <p class="sub">Первыми ходят <button id="startPill" class="startPill" title="Нажмите, чтобы сменить"></button></p>
+    <h1>Codenames капитан</h1>
+    <p class="sub"><span id="startText"></span>, моя команда <button id="teamPill" class="pill" title="Нажмите, чтобы сменить"></button></p>
   </header>
 
   <section class="scoreRow" id="scoreRow"></section>
@@ -72,8 +94,10 @@ a{color:#FFD66B}
   <section class="toolbar">
     <button class="tb" id="btnWords">Фото слов</button>
     <button class="tb" id="btnKey">Фото ключа</button>
+    <button class="tb" id="btnRotateWords" title="Если слова легли боком">Повернуть фото</button>
     <button class="tb" id="btnRotate" title="Если карта-ключ лежала боком">Повернуть ключ</button>
-    <button class="tb" id="btnEdit">Править</button>
+    <button class="tb" id="btnEdit">Исправить слова</button>
+    <button class="tb danger" id="btnReset">Обнулить</button>
     <input id="fileWords" type="file" accept="image/*" hidden>
     <input id="fileKey" type="file" accept="image/*" hidden>
   </section>
@@ -94,21 +118,39 @@ a{color:#FFD66B}
   </nav>
 
   <section id="viewTable">
-    <p class="hint" id="hint"></p>
-    <div class="grid" id="grid"></div>
+    <div class="boardHead">
+      <p class="hint" id="hint"></p>
+      <button class="tb" id="btnLink">Связать слова</button>
+    </div>
+    <div class="gridWrap" id="gridWrap">
+      <div class="grid" id="grid"></div>
+      <svg class="links" id="links"></svg>
+    </div>
   </section>
 
   <section id="viewLists" class="hidden">
+    <div class="filters" id="filters"></div>
     <div class="lists" id="lists"></div>
   </section>
 
+  <section id="linkBar" class="linkBar hidden">
+    <span class="count" id="selCount"></span>
+    <input id="clueInput" placeholder="Подсказка" autocomplete="off">
+    <button class="tb on" id="btnMakeGroup">Связать</button>
+    <button class="tb" id="btnClearSel">Сбросить</button>
+  </section>
+
+  <section class="groups" id="groups"></section>
+
   <p class="version" id="version"></p>
 </div>
+
 <script>
-// Адрес вашего воркера Cloudflare (вставьте свой после создания воркера)
-const APP_VERSION = "Версия 5, 01.10.2026 11:48";
+const APP_VERSION = "Версия 7, 01.10.2026 12:29";
 const WORKER_URL = "https://codenames-ocr.vwm4hczm8w.workers.dev";
 
+const EMPTY_WORDS = Array(25).fill("");
+const EMPTY_KEY = Array(25).fill("N");
 const DEFAULT_WORDS = [
   "ФОРМА","КЕНТАВР","ПОЛЕ","ТРИП","ЛЕС",
   "ВЕК","ПОКРОВ","ПЛАТЬЕ","ДРЯНЬ","БУТЫЛКА",
@@ -124,12 +166,15 @@ const DEFAULT_KEY = [
   "Y","B","R","Y","R"
 ];
 const COLORS = {
-  R:{name:"Красные",bg:"#D23A2A",fg:"#fff",ring:"#FF8A73"},
-  B:{name:"Синие",bg:"#2C5DA8",fg:"#fff",ring:"#8DB5F0"},
+  R:{name:"Красные",short:"красные",bg:"#D23A2A",fg:"#fff",ring:"#FF8A73"},
+  B:{name:"Синие",short:"синие",bg:"#2C5DA8",fg:"#fff",ring:"#8DB5F0"},
   Y:{name:"Мирные (жёлтые)",bg:"#E4D6A2",fg:"#3A3226",ring:"#FFF3C4"},
-  K:{name:"Убийца (чёрная)",bg:"#141414",fg:"#F2EAD3",ring:"#8C8C8C"}
+  K:{name:"Убийца (чёрная)",bg:"#141414",fg:"#F2EAD3",ring:"#8C8C8C"},
+  N:{name:"Цвет не задан",bg:"#5A5048",fg:"#EFE6D0",ring:"#8C7A6B"}
 };
 const ORDER = ["R","B","Y","K"];
+// цвета связок — не совпадают с цветами карточек
+const GROUP_COLORS = ["#3FD08A","#B57CFF","#FF9B2F","#2FD3E0","#FF5FA8","#C8F04A","#FFFFFF"];
 
 // ---------- состояние ----------
 function load(name, fallback){
@@ -137,24 +182,33 @@ function load(name, fallback){
 }
 function save(){
   try{
-    localStorage.setItem("cn_words", JSON.stringify(state.words));
-    localStorage.setItem("cn_key", JSON.stringify(state.key));
-    localStorage.setItem("cn_start", JSON.stringify(state.start));
-    localStorage.setItem("cn_opened", JSON.stringify(state.opened));
+    for (const k of ["words","key","team","opened","groups"])
+      localStorage.setItem("cn_"+k, JSON.stringify(state[k]));
   }catch(e){}
 }
 const state = {
   words: load("words", DEFAULT_WORDS),
   key: load("key", DEFAULT_KEY),
-  start: load("start", "R"),
+  team: load("team", "R"),
   opened: load("opened", Array(25).fill(false)),
+  groups: load("groups", []),          // [{clue, cells:[i,...], color}]
   view: "table",
+  filter: load("filter", "team"),      // team | all | R | B | Y | K
   edit: false,
+  linkMode: false,
+  sel: [],
+  focus: null,
   busy: ""
 };
 
 const $ = id => document.getElementById(id);
 function esc(s){ return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function groupsOf(i){ return state.groups.map((g,gi) => ({g,gi})).filter(({g}) => g.cells.includes(i)); }
+function dotsHtml(i){
+  const gs = groupsOf(i);
+  if (!gs.length) return "";
+  return `<span class="dots">${gs.map(({g}) => `<span class="dot" style="background:${g.color}"></span>`).join("")}</span>`;
+}
 
 // ---------- отрисовка ----------
 function render(){
@@ -164,41 +218,92 @@ function render(){
     left[k] = state.key.filter((x,i) => x === k && !state.opened[i]).length;
   });
 
-  const pill = $("startPill");
-  pill.textContent = state.start === "R" ? "красные" : "синие";
-  pill.style.background = COLORS[state.start].bg;
+  const first = counts.R > counts.B ? "R" : counts.B > counts.R ? "B" : null;
+  $("startText").innerHTML = first
+    ? `Первыми ходят <span class="pill" style="background:${COLORS[first].bg}">${COLORS[first].short}</span>`
+    : "Кто ходит первым, станет ясно по ключу";
+  $("teamPill").textContent = COLORS[state.team].short;
+  $("teamPill").style.background = COLORS[state.team].bg;
 
   $("scoreRow").innerHTML = ORDER.map(k =>
     `<div class="score" style="background:${COLORS[k].bg};color:${COLORS[k].fg}">
        <span class="scoreNum">${left[k]}</span><span class="scoreOf">из ${counts[k]}</span></div>`).join("");
 
-  ["btnWords","btnKey","btnRotate"].forEach(id => $(id).disabled = !!state.busy);
+  ["btnWords","btnKey","btnRotate","btnRotateWords"].forEach(id => $(id).disabled = !!state.busy);
   $("btnEdit").textContent = state.edit ? "Готово" : "Исправить слова";
   $("btnEdit").classList.toggle("on", state.edit);
 
   $("noteBusy").textContent = state.busy;
   $("noteBusy").classList.toggle("hidden", !state.busy);
 
-  const odd = counts.K !== 1 || counts.Y !== 7 || counts.R + counts.B !== 17;
-  $("noteWarn").classList.toggle("hidden", !odd || !!state.busy);
-  $("noteWarn").textContent = `В ключе должно быть 9 + 8 цветных, 7 жёлтых и 1 чёрная. Сейчас: ${counts.R} красных, ${counts.B} синих, ${counts.Y} жёлтых, ${counts.K} чёрных — проверьте клетки.`;
+  const unset = state.key.filter(x => x === "N").length;
+  const odd = !unset && (counts.K !== 1 || counts.Y !== 7 || counts.R + counts.B !== 17);
+  $("noteWarn").classList.toggle("hidden", !(odd || unset) || !!state.busy);
+  $("noteWarn").textContent = unset
+    ? "Цвета ещё не заданы: сфотографируйте карту-ключ или раскрасьте клетки в «Исправить слова»."
+    : `В ключе должно быть 9 + 8 цветных, 7 жёлтых и 1 чёрная. Сейчас: ${counts.R} красных, ${counts.B} синих, ${counts.Y} жёлтых, ${counts.K} чёрных — проверьте клетки.`;
 
-  $("tabTable").classList.toggle("active", state.view === "table");
-  $("tabLists").classList.toggle("active", state.view === "lists");
   $("editor").classList.toggle("hidden", !state.edit);
   $("tabs").classList.toggle("hidden", state.edit);
+  $("tabTable").classList.toggle("active", state.view === "table");
+  $("tabLists").classList.toggle("active", state.view === "lists");
   $("viewTable").classList.toggle("hidden", state.edit || state.view !== "table");
   $("viewLists").classList.toggle("hidden", state.edit || state.view !== "lists");
 
-  $("hint").textContent = "Нажмите на карточку, когда её открыли — она потускнеет.";
+  $("btnLink").textContent = state.linkMode ? "Закончить" : "Связать слова";
+  $("btnLink").classList.toggle("on", state.linkMode);
+  $("hint").textContent = state.linkMode
+    ? "Остались только слова вашей команды. Нажимайте на те, что хотите объединить одной подсказкой."
+    : "Нажмите на карточку, когда её открыли — она потускнеет.";
 
+  // стол
   $("grid").innerHTML = state.words.map((w,i) => {
     const c = COLORS[state.key[i]];
-    const style = `background:${c.bg};color:${c.fg};box-shadow:inset 0 0 0 2px ${c.ring}55`;
-    return `<div class="card${state.opened[i] ? " opened" : ""}" data-i="${i}" tabindex="0" style="${style}">
-      <span class="word${w.length > 9 ? " long" : ""}">${esc(w)}</span></div>`;
+    const cls = ["card"];
+    if (state.opened[i]) cls.push("opened");
+    if (state.sel.includes(i)) cls.push("sel");
+    if (!w) cls.push("empty");
+    if (state.linkMode && state.key[i] !== state.team)
+      return `<div class="card ghost" aria-hidden="true"></div>`;
+    return `<div class="${cls.join(" ")}" data-i="${i}" tabindex="0" style="background:${c.bg};color:${c.fg};box-shadow:inset 0 0 0 2px ${c.ring}55">
+      ${dotsHtml(i)}<span class="word${w.length > 7 ? " long" : ""}">${w ? esc(w) : "?"}</span></div>`;
+  }).join("");
+  requestAnimationFrame(drawLinks);
+
+  // панель выбора
+  $("linkBar").classList.toggle("hidden", !state.linkMode || state.edit);
+  $("selCount").textContent = state.sel.length ? `Выбрано: ${state.sel.length}` : "Выберите слова";
+  $("btnMakeGroup").disabled = state.sel.length < 1;
+
+  // связки
+  $("groups").classList.toggle("hidden", state.edit || !state.groups.length);
+  $("groups").innerHTML = state.groups.map((g,gi) => {
+    const words = g.cells.map(i => state.words[i] || "?").join(", ");
+    const dim = state.focus !== null && state.focus !== gi ? " dim" : "";
+    return `<div class="group${dim}" data-g="${gi}" style="border-left-color:${g.color}">
+      <div class="gText"><div class="gClue">${g.clue ? esc(g.clue) : "Без подсказки"} ${g.cells.length}</div>
+      <div class="gWords">${esc(words)}</div></div>
+      <button class="gDel" data-del="${gi}" aria-label="Удалить связку">×</button></div>`;
   }).join("");
 
+  // списки
+  const filters = [["team","Моя команда"],["all","Все"],["R","Красные"],["B","Синие"],["Y","Жёлтые"],["K","Чёрная"]];
+  $("filters").innerHTML = filters.map(([f,label]) =>
+    `<button data-f="${f}" class="${state.filter === f ? "active" : ""}">${label}</button>`).join("");
+  const shown = state.filter === "all" ? ORDER : state.filter === "team" ? [state.team] : [state.filter];
+  $("lists").innerHTML = shown.map(k => {
+    const items = state.words.map((w,i) => ({w,i})).filter(({i}) => state.key[i] === k);
+    return `<div class="list" style="border-color:${COLORS[k].bg}">
+      <h2 style="background:${COLORS[k].bg};color:${COLORS[k].fg}">${COLORS[k].name} <span>${items.length}</span></h2>
+      <ul>${items.map(({w,i}) => {
+        const dots = groupsOf(i).map(({g}) => `<span class="dot" style="background:${g.color}"></span>`).join("");
+        const cls = [state.opened[i] ? "opened" : "", state.sel.includes(i) ? "sel" : ""].join(" ");
+        return `<li data-i="${i}" tabindex="0" class="${cls}">${dots}${w ? esc(w) : "?"}</li>`;
+      }).join("")}</ul>
+    </div>`;
+  }).join("");
+
+  // редактор
   if (state.edit && !$("editList").dataset.built){
     let html = "";
     for (let r = 0; r < 5; r++){
@@ -216,46 +321,129 @@ function render(){
     $("editList").dataset.built = "1";
   }
   if (!state.edit) delete $("editList").dataset.built;
-
-  $("lists").innerHTML = ORDER.map(k => {
-    const items = state.words.map((w,i) => ({w,i})).filter(({i}) => state.key[i] === k);
-    return `<div class="list" style="border-color:${COLORS[k].bg}">
-      <h2 style="background:${COLORS[k].bg};color:${COLORS[k].fg}">${COLORS[k].name} <span>${items.length}</span></h2>
-      <ul>${items.map(({w,i}) => `<li data-i="${i}" tabindex="0" class="${state.opened[i] ? "opened" : ""}">${esc(w)}</li>`).join("")}</ul>
-    </div>`;
-  }).join("");
 }
+
+// линии связок поверх стола
+function drawLinks(){
+  const svg = $("links"), wrap = $("gridWrap");
+  if (state.view !== "table" || state.edit){ svg.innerHTML = ""; return; }
+  const box = wrap.getBoundingClientRect();
+  const cards = [...$("grid").children];
+  const center = i => {
+    const r = cards[i].getBoundingClientRect();
+    return [r.left - box.left + r.width/2, r.top - box.top + r.height - 8];
+  };
+  let out = "";
+  const lists = state.groups.map((g,gi) => ({cells:g.cells, color:g.color, gi, clue:g.clue}));
+  if (state.linkMode && state.sel.length) lists.push({cells:state.sel, color:"#FFFFFF", gi:-1, sel:true});
+  lists.forEach(({cells,color,gi,clue,sel}, n) => {
+    if (!cells.length) return;
+    const dim = state.focus !== null && gi !== state.focus && !sel;
+    const off = (n % 4 - 1.5) * 3; // чуть сдвигаем линии, чтобы не сливались
+    const pts = cells.map(i => center(i).map(v => v + off));
+    const op = dim ? .15 : .95;
+    if (pts.length > 1)
+      out += `<polyline points="${pts.map(p => p.join(",")).join(" ")}" fill="none" stroke="${color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" ${sel ? 'stroke-dasharray="7 6"' : ""} opacity="${op}"/>`;
+    pts.forEach(([x,y]) => out += `<circle cx="${x}" cy="${y}" r="5" fill="${color}" stroke="#000" stroke-opacity=".4" opacity="${op}"/>`);
+    if (!sel){
+      const [x] = pts[0]; const y = cards[cells[0]].getBoundingClientRect().top - box.top + 10;
+      const label = `${clue || "?"} ${cells.length}`;
+      const w = label.length * 7.5 + 12;
+      out += `<g opacity="${op}"><rect x="${x - w/2}" y="${y - 30}" width="${w}" height="20" rx="10" fill="${color}"/>
+        <text x="${x}" y="${y - 16}" text-anchor="middle" font-family="Rubik,sans-serif" font-size="12" font-weight="700" fill="#1A1A1A">${esc(label)}</text></g>`;
+    }
+  });
+  svg.innerHTML = out;
+}
+window.addEventListener("resize", () => requestAnimationFrame(drawLinks));
 
 function showError(msg){
   $("noteErr").textContent = msg;
   $("noteErr").classList.toggle("hidden", !msg);
 }
 function toggleOpened(i){ state.opened[i] = !state.opened[i]; save(); render(); }
+function toggleSel(i){
+  if (state.key[i] !== state.team) return;
+  const k = state.sel.indexOf(i);
+  if (k >= 0) state.sel.splice(k,1); else state.sel.push(i);
+  render();
+}
+function tapWord(i){ state.linkMode ? toggleSel(i) : toggleOpened(i); }
+
+// поворот: где окажется клетка i после поворота на 90° по часовой
+function rotIndex(i){ const r = Math.floor(i/5), c = i % 5; return c*5 + (4 - r); }
+function rotateArr(arr){ const out = new Array(25); arr.forEach((v,i) => out[rotIndex(i)] = v); return out; }
 
 // ---------- события ----------
-$("startPill").onclick = () => { state.start = state.start === "R" ? "B" : "R"; save(); render(); };
-$("btnEdit").onclick = () => { state.edit = !state.edit; render(); };
-$("btnRotate").onclick = () => {
-  const k = state.key, out = new Array(25);
-  for (let r = 0; r < 5; r++) for (let c = 0; c < 5; c++) out[r*5+c] = k[(4-c)*5+r];
-  state.key = out; save(); render();
+$("teamPill").onclick = () => { state.team = state.team === "R" ? "B" : "R"; state.sel = []; save(); render(); };
+$("btnEdit").onclick = () => { state.edit = !state.edit; state.linkMode = false; state.sel = []; render(); };
+$("btnDone").onclick = () => { state.edit = false; render(); };
+$("btnRotate").onclick = () => { state.key = rotateArr(state.key); save(); render(); };
+$("btnRotateWords").onclick = () => {
+  state.words = rotateArr(state.words);
+  state.opened = rotateArr(state.opened);
+  state.groups.forEach(g => g.cells = g.cells.map(rotIndex));
+  state.sel = state.sel.map(rotIndex);
+  save(); render();
+};
+$("btnReset").onclick = () => {
+  if (!confirm("Стереть все слова, цвета ключа, отметки и связки?")) return;
+  try{ Object.keys(localStorage).filter(k => k.startsWith("cn_")).forEach(k => localStorage.removeItem(k)); }catch(e){}
+  Object.assign(state, {
+    words: EMPTY_WORDS.slice(), key: EMPTY_KEY.slice(), opened: Array(25).fill(false),
+    groups: [], sel: [], focus: null, linkMode: false, edit: false
+  });
+  showError(""); save(); render();
 };
 $("tabTable").onclick = () => { state.view = "table"; render(); };
-$("tabLists").onclick = () => { state.view = "lists"; render(); };
+$("tabLists").onclick = () => { state.view = "lists"; state.linkMode = false; state.sel = []; state.focus = null; render(); };
+
+$("btnLink").onclick = () => { state.linkMode = !state.linkMode; state.sel = []; state.focus = null; render(); };
+$("btnClearSel").onclick = () => { state.sel = []; render(); };
+$("btnMakeGroup").onclick = () => {
+  if (!state.sel.length) return;
+  const used = state.groups.map(g => g.color);
+  const color = GROUP_COLORS.find(c => !used.includes(c)) || GROUP_COLORS[state.groups.length % GROUP_COLORS.length];
+  state.groups.push({ clue: $("clueInput").value.trim().toUpperCase(), cells: state.sel.slice(), color });
+  state.sel = []; $("clueInput").value = "";
+  save(); render();
+};
+$("groups").addEventListener("click", e => {
+  const del = e.target.closest("[data-del]");
+  if (del){
+    const gi = +del.dataset.del;
+    state.groups.splice(gi,1);
+    state.focus = null; save(); render(); return;
+  }
+  const g = e.target.closest(".group");
+  if (g){ const gi = +g.dataset.g; state.focus = state.focus === gi ? null : gi; render(); }
+});
 
 $("grid").addEventListener("click", e => {
   const card = e.target.closest(".card");
-  if (card) toggleOpened(+card.dataset.i);
+  if (card) tapWord(+card.dataset.i);
 });
 $("grid").addEventListener("keydown", e => {
   const card = e.target.closest(".card[data-i]");
-  if (card && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); toggleOpened(+card.dataset.i); }
+  if (card && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); tapWord(+card.dataset.i); }
+});
+$("lists").addEventListener("click", e => {
+  const li = e.target.closest("li[data-i]");
+  if (li) tapWord(+li.dataset.i);
+});
+$("filters").addEventListener("click", e => {
+  const b = e.target.closest("[data-f]");
+  if (!b) return;
+  state.filter = b.dataset.f;
+  try{ localStorage.setItem("cn_filter", JSON.stringify(state.filter)); }catch(err){}
+  render();
 });
 $("editList").addEventListener("click", e => {
   const sw = e.target.closest(".swatch");
   if (!sw) return;
   const i = +sw.dataset.i;
-  state.key[i] = ORDER[(ORDER.indexOf(state.key[i]) + 1) % ORDER.length];
+  const cur = ORDER.indexOf(state.key[i]);
+  state.key[i] = ORDER[(cur + 1) % ORDER.length];
   sw.style.background = COLORS[state.key[i]].bg;
   save(); render();
 });
@@ -263,11 +451,6 @@ $("editList").addEventListener("input", e => {
   if (e.target.classList.contains("wordEdit")){
     state.words[+e.target.dataset.i] = e.target.value.trim().toUpperCase(); save();
   }
-});
-$("btnDone").onclick = () => { state.edit = false; render(); };
-$("lists").addEventListener("click", e => {
-  const li = e.target.closest("li[data-i]");
-  if (li) toggleOpened(+li.dataset.i);
 });
 
 // ---------- распознавание фото ----------
@@ -312,7 +495,7 @@ $("fileWords").onchange = async e => {
     const res = await askClaude(await fileToBase64(file), "words");
     const flat = (res.words || []).flat().map(w => String(w).trim().toUpperCase());
     if (flat.length !== 25) throw new Error(`распознано ${flat.length} слов вместо 25`);
-    state.words = flat; state.opened = Array(25).fill(false); save();
+    state.words = flat; state.opened = Array(25).fill(false); state.groups = []; state.sel = []; save();
   }catch(err){
     showError(`Слова не распознаны: ${err.message}. Сфотографируйте все 25 карточек сверху или поправьте слова вручную.`);
   }finally{ state.busy = ""; render(); }
@@ -327,7 +510,6 @@ $("fileKey").onchange = async e => {
     const flat = (res.grid || []).flat().map(x => String(x).toUpperCase());
     if (flat.length !== 25 || flat.some(x => !ORDER.includes(x))) throw new Error("сетка распознана не полностью");
     state.key = flat;
-    if (res.start === "R" || res.start === "B") state.start = res.start;
     save();
   }catch(err){
     showError(`Карта-ключ не распознана: ${err.message}. Снимите её ровно и крупно или раскрасьте клетки вручную.`);
