@@ -16,6 +16,9 @@ body{color:var(--text);font-family:'Rubik',system-ui,-apple-system,'Segoe UI',sa
 .app{max-width:760px;margin:0 auto}
 h1{font-size:28px;font-weight:800;margin:0;color:#F5ECD6}
 .sub{margin:6px 0 0;color:var(--muted);font-size:15px}
+.team{display:flex;align-items:center;gap:10px;margin-top:10px;color:var(--muted);font-size:16px}
+.teamSq{width:34px;height:34px;border-radius:8px;border:3px solid transparent;cursor:pointer;opacity:.4;padding:0}
+.teamSq.active{opacity:1;border-color:#F5ECD6}
 .pill{border:0;color:#fff;font:inherit;font-weight:700;padding:2px 10px;border-radius:999px;cursor:pointer}
 .scoreRow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:18px 0 14px}
 .score{border-radius:10px;padding:10px 8px;display:flex;align-items:baseline;gap:6px;justify-content:center}
@@ -92,7 +95,11 @@ svg.links{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;o
 <div class="app">
   <header>
     <h1>Codenames капитан</h1>
-    <p class="sub"><span id="startText"></span>, моя команда <button id="teamPill" class="pill" title="Нажмите, чтобы сменить"></button></p>
+    <div class="team" role="radiogroup" aria-label="Моя команда">
+      <span>Моя команда</span>
+      <button class="teamSq" data-team="R" role="radio" aria-label="Красные" style="background:#D23A2A"></button>
+      <button class="teamSq" data-team="B" role="radio" aria-label="Синие" style="background:#2C5DA8"></button>
+    </div>
   </header>
 
   <section class="scoreRow" id="scoreRow"></section>
@@ -126,7 +133,7 @@ svg.links{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;o
   <div id="noteWarn" class="note warn hidden"></div>
 
   <section id="editor" class="editor hidden">
-    <p>Исправьте слова и цвета. Квадратик слева меняет цвет клетки по кругу: красный, синий, жёлтый, чёрный. Порядок — как карточки лежат на столе, ряды сверху вниз.</p>
+    <p>Исправьте слова и цвета. Квадратик слева меняет цвет клетки по кругу: красный, синий, жёлтый, чёрный (бомба). Порядок — как карточки лежат на столе, ряды сверху вниз.</p>
     <div id="editList"></div>
     <button class="done" id="btnDone">Готово</button>
   </section>
@@ -165,7 +172,7 @@ svg.links{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;o
 </div>
 
 <script>
-const APP_VERSION = "Версия 9, 01.10.2026 12:56";
+const APP_VERSION = "Версия 10, 01.10.2026 13:03";
 const WORKER_URL = "https://codenames-ocr.vwm4hczm8w.workers.dev";
 
 const EMPTY_WORDS = Array(25).fill("");
@@ -188,7 +195,7 @@ const COLORS = {
   R:{name:"Красные",short:"красные",bg:"#D23A2A",fg:"#fff",ring:"#FF8A73"},
   B:{name:"Синие",short:"синие",bg:"#2C5DA8",fg:"#fff",ring:"#8DB5F0"},
   Y:{name:"Мирные (жёлтые)",bg:"#E4D6A2",fg:"#3A3226",ring:"#FFF3C4"},
-  K:{name:"Убийца (чёрная)",bg:"#141414",fg:"#F2EAD3",ring:"#8C8C8C"},
+  K:{name:"Бомба",bg:"#141414",fg:"#F2EAD3",ring:"#8C8C8C"},
   N:{name:"Цвет не задан",bg:"#5A5048",fg:"#EFE6D0",ring:"#8C7A6B"}
 };
 const ORDER = ["R","B","Y","K"];
@@ -212,7 +219,7 @@ const state = {
   opened: load("opened", Array(25).fill(false)),
   groups: load("groups", []),          // [{clue, cells:[i,...], color}]
   view: "table",
-  filter: load("filter", "team"),      // team | all | R | B | Y | K
+  filter: "all",                       // all | R | B | Y | K — при открытии всегда «Все»
   edit: false,
   linkMode: false,
   sel: [],
@@ -237,12 +244,11 @@ function render(){
     left[k] = state.key.filter((x,i) => x === k && !state.opened[i]).length;
   });
 
-  const first = counts.R > counts.B ? "R" : counts.B > counts.R ? "B" : null;
-  $("startText").innerHTML = first
-    ? `Первыми ходят <span class="pill" style="background:${COLORS[first].bg}">${COLORS[first].short}</span>`
-    : "Кто ходит первым, станет ясно по ключу";
-  $("teamPill").textContent = COLORS[state.team].short;
-  $("teamPill").style.background = COLORS[state.team].bg;
+  document.querySelectorAll(".teamSq").forEach(b => {
+    const on = b.dataset.team === state.team;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-checked", on);
+  });
 
   $("scoreRow").innerHTML = ORDER.map(k =>
     `<div class="score" style="background:${COLORS[k].bg};color:${COLORS[k].fg}">
@@ -260,7 +266,7 @@ function render(){
   $("noteWarn").classList.toggle("hidden", !(odd || unset) || !!state.busy);
   $("noteWarn").textContent = unset
     ? "Цвета ещё не заданы: сфотографируйте карту-ключ или раскрасьте клетки в «Исправить слова»."
-    : `В ключе должно быть 9 + 8 цветных, 7 жёлтых и 1 чёрная. Сейчас: ${counts.R} красных, ${counts.B} синих, ${counts.Y} жёлтых, ${counts.K} чёрных — проверьте клетки.`;
+    : `В ключе должно быть 9 + 8 цветных, 7 жёлтых и 1 бомба. Сейчас: ${counts.R} красных, ${counts.B} синих, ${counts.Y} жёлтых, ${counts.K} бомб — проверьте клетки.`;
 
   $("editor").classList.toggle("hidden", !state.edit);
   $("tabs").classList.toggle("hidden", state.edit);
@@ -305,10 +311,10 @@ function render(){
   }).join("");
 
   // списки
-  const filters = [["team","Моя команда"],["all","Все"],["R","Красные"],["B","Синие"],["Y","Жёлтые"],["K","Чёрная"]];
+  const filters = [["all","Все"],["R","Красные"],["B","Синие"],["Y","Жёлтые"],["K","Бомба"]];
   $("filters").innerHTML = filters.map(([f,label]) =>
     `<button data-f="${f}" class="${state.filter === f ? "active" : ""}">${label}</button>`).join("");
-  const shown = state.filter === "all" ? ORDER : state.filter === "team" ? [state.team] : [state.filter];
+  const shown = ORDER.includes(state.filter) ? [state.filter] : ORDER;
   $("lists").innerHTML = shown.map(k => {
     const items = state.words.map((w,i) => ({w,i})).filter(({i}) => state.key[i] === k);
     return `<div class="list" style="border-color:${COLORS[k].bg}">
@@ -393,7 +399,10 @@ function rotIndex(i){ const r = Math.floor(i/5), c = i % 5; return c*5 + (4 - r)
 function rotateArr(arr){ const out = new Array(25); arr.forEach((v,i) => out[rotIndex(i)] = v); return out; }
 
 // ---------- события ----------
-$("teamPill").onclick = () => { state.team = state.team === "R" ? "B" : "R"; state.sel = []; save(); render(); };
+document.querySelectorAll(".teamSq").forEach(b => b.onclick = () => {
+  if (state.team === b.dataset.team) return;
+  state.team = b.dataset.team; state.sel = []; save(); render();
+});
 $("btnEdit").onclick = () => { state.edit = !state.edit; state.linkMode = false; state.sel = []; render(); };
 $("btnDone").onclick = () => { state.edit = false; render(); };
 $("btnRotate").onclick = () => { state.key = rotateArr(state.key); save(); render(); };
@@ -458,7 +467,6 @@ $("filters").addEventListener("click", e => {
   const b = e.target.closest("[data-f]");
   if (!b) return;
   state.filter = b.dataset.f;
-  try{ localStorage.setItem("cn_filter", JSON.stringify(state.filter)); }catch(err){}
   render();
 });
 $("editList").addEventListener("click", e => {
