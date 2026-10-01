@@ -40,6 +40,7 @@ button:focus-visible,input:focus-visible,li:focus-visible,.card:focus-visible{ou
 .card.opened .word{text-decoration:line-through}
 .word{font-weight:700;font-size:clamp(9px,2.6vw,15px);text-align:center;word-break:break-word;line-height:1.1}
 .word.long{font-size:clamp(7px,1.9vw,12px)}
+a{color:#FFD66B}
 .editor{margin-top:16px;background:var(--panel);border-radius:10px;padding:14px}
 .editor p{margin:0 0 12px;font-size:14px;color:var(--muted);line-height:1.45}
 .editRow{margin-bottom:14px}
@@ -103,8 +104,8 @@ a{color:#FFD66B}
 </div>
 
 <script>
-// Модель для распознавания фото. Можно сменить на другую модель Claude.
-const MODEL = "claude-sonnet-5-5";
+// Адрес вашего воркера Cloudflare (вставьте свой после создания воркера)
+const WORKER_URL = "https://codenames-ocr.vwm4hczm8w.workers.dev";
 
 const DEFAULT_WORDS = [
   "ФОРМА","КЕНТАВР","ПОЛЕ","ТРИП","ЛЕС",
@@ -127,19 +128,6 @@ const COLORS = {
   K:{name:"Убийца (чёрная)",bg:"#141414",fg:"#F2EAD3",ring:"#8C8C8C"}
 };
 const ORDER = ["R","B","Y","K"];
-
-const WORDS_PROMPT = `На фото 25 карточек настольной игры «Кодовые имена» (Codenames), разложенных сеткой 5×5.
-На каждой карточке слово напечатано дважды: крупно и мелко (зеркально/вверх ногами). Читай крупное слово.
-Карточки могут быть повёрнуты — всё равно определи сетку так, как она видна на фото.
-Верни ТОЛЬКО JSON без пояснений и без markdown:
-{"words":[["слово","слово","слово","слово","слово"], ... всего 5 рядов]}
-Ряды — сверху вниз, слова в ряду — слева направо, как видно на фото. Заглавными буквами.`;
-const KEY_PROMPT = `На фото карта-ключ игры «Кодовые имена» (Codenames): сетка 5×5 квадратов.
-Красный квадрат (с ромбом) = "R", синий (с кругом) = "B", бежевый/жёлтый = "Y", чёрный с крестиком = "K".
-Цветные лампочки по краям рамки показывают, какая команда ходит первой.
-Верни ТОЛЬКО JSON без пояснений и без markdown:
-{"grid":[["R","B","Y","B","B"], ... всего 5 рядов], "start":"R" или "B"}
-Ряды — сверху вниз, клетки — слева направо, в той ориентации, как карта лежит на фото.`;
 
 // ---------- состояние ----------
 function load(name, fallback){
@@ -280,9 +268,6 @@ $("lists").addEventListener("click", e => {
   if (li) toggleOpened(+li.dataset.i);
 });
 
-// ---------- ключ API ----------
-function getApiKey(){ try{ return localStorage.getItem("cn_apikey") || ""; }catch(e){ return ""; } }
-
 // ---------- распознавание фото ----------
 async function fileToBase64(file, max = 1600){
   const url = URL.createObjectURL(file);
@@ -297,31 +282,20 @@ async function fileToBase64(file, max = 1600){
   return c.toDataURL("image/jpeg", 0.85).split(",")[1];
 }
 
-async function askClaude(base64, prompt){
-  const apiKey = getApiKey();
-  if (!apiKey){
-    throw new Error("в этом браузере не сохранён ключ API");
+async function askClaude(base64, mode){
+  let response;
+  try{
+    response = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode, image: base64 })
+    });
+  }catch(e){
+    throw new Error("нет связи с сервером распознавания");
   }
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true"
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 1000,
-      messages: [{ role: "user", content: [
-        { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64 } },
-        { type: "text", text: prompt }
-      ]}]
-    })
-  });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data?.error?.message || ("ошибка API " + response.status));
-  const text = (data.content || []).map(i => i.text || "").join("\n").replace(/```json|```/g, "").trim();
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || ("ошибка сервера " + response.status));
+  const text = String(data.text || "").replace(/```json|```/g, "").trim();
   return JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
 }
 
@@ -333,7 +307,7 @@ $("fileWords").onchange = async e => {
   if (!file) return;
   showError(""); state.busy = "Читаю слова на карточках…"; render();
   try{
-    const res = await askClaude(await fileToBase64(file), WORDS_PROMPT);
+    const res = await askClaude(await fileToBase64(file), "words");
     const flat = (res.words || []).flat().map(w => String(w).trim().toUpperCase());
     if (flat.length !== 25) throw new Error(`распознано ${flat.length} слов вместо 25`);
     state.words = flat; state.opened = Array(25).fill(false); save();
@@ -347,7 +321,7 @@ $("fileKey").onchange = async e => {
   if (!file) return;
   showError(""); state.busy = "Читаю карту-ключ…"; render();
   try{
-    const res = await askClaude(await fileToBase64(file), KEY_PROMPT);
+    const res = await askClaude(await fileToBase64(file), "key");
     const flat = (res.grid || []).flat().map(x => String(x).toUpperCase());
     if (flat.length !== 25 || flat.some(x => !ORDER.includes(x))) throw new Error("сетка распознана не полностью");
     state.key = flat;
